@@ -1,0 +1,130 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Position Size Calculator</title>
+    <style>
+        body { font-family: Arial, sans-serif; background-color: #1e1e1e; color: white; }
+        .container { max-width: 600px; margin: 0 auto; padding: 20px; }
+        .input-group { display: flex; justify-content: space-between; margin-bottom: 10px; }
+        input { background-color: #333; color: white; border: none; padding: 5px; width: 200px; }
+        .result { background-color: #333; padding: 5px; margin-top: 10px; }
+        #contractsResult { 
+            font-size: 24px; 
+            text-align: center; 
+            background-color: #4CAF50; 
+            padding: 15px; 
+            margin: 20px 0; 
+            border-radius: 5px;
+        }
+        #saveButton {
+            background-color: #008CBA;
+            border: none;
+            color: white;
+            padding: 15px 32px;
+            text-align: center;
+            text-decoration: none;
+            display: inline-block;
+            font-size: 16px;
+            margin: 4px 2px;
+            cursor: pointer;
+            border-radius: 5px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h2>Position Size Calculator</h2>
+        <div class="input-group">
+            <label for="accountBalance">Account Balance USD:</label>
+            <input type="number" id="accountBalance" value="50000">
+        </div>
+        <div class="input-group">
+            <label for="risk">Risk %:</label>
+            <input type="number" id="risk" value="1" step="0.01">
+        </div>
+        <div class="input-group">
+            <label for="entryPrice">Entry Price:</label>
+            <input type="number" id="entryPrice" value="59503" step="0.01">
+        </div>
+        <div class="input-group">
+            <label for="stopLoss">Stop Loss:</label>
+            <input type="number" id="stopLoss" value="59230" step="0.01">
+        </div>
+        <div class="input-group">
+            <label for="takeProfit">Take Profit:</label>
+            <input type="number" id="takeProfit" value="60000" step="0.01">
+        </div>
+        <div class="input-group">
+            <label for="contractSize">Contract Size:</label>
+            <input type="number" id="contractSize" value="1" step="0.01">
+        </div>
+        <button id="saveButton">Save Settings</button>
+        <div id="contractsResult"></div>
+        <div class="result" id="riskUsd"></div>
+        <div class="result" id="profitUsd"></div>
+        <div class="result" id="positionSize"></div>
+        <div class="result" id="positionSizeUsd"></div>
+    </div>
+
+    <script>
+        function calculatePosition() {
+            const accountBalance = parseFloat(document.getElementById('accountBalance').value);
+            const risk = parseFloat(document.getElementById('risk').value) / 100;
+            const entryPrice = parseFloat(document.getElementById('entryPrice').value);
+            const stopLoss = parseFloat(document.getElementById('stopLoss').value);
+            const takeProfit = parseFloat(document.getElementById('takeProfit').value);
+            const contractSize = parseFloat(document.getElementById('contractSize').value);
+
+            const riskUsd = accountBalance * risk;
+            const riskPerUnit = Math.abs(entryPrice - stopLoss);
+            const positionSize = riskUsd / riskPerUnit;
+            const positionSizeUsd = positionSize * entryPrice;
+            const numberOfContracts = positionSize / contractSize;
+
+            // Take profit hesaplama
+            const profitPerUnit = Math.abs(takeProfit - entryPrice);
+            const totalProfit = profitPerUnit * positionSize;
+
+            document.getElementById('contractsResult').textContent = `Position Size: ${numberOfContracts.toFixed(4)}`;
+            document.getElementById('positionSize').textContent = `Number of Contracts: ${numberOfContracts.toFixed(4)}`;
+            document.getElementById('riskUsd').textContent = `Risk USD: ${riskUsd.toFixed(2)}`;
+            document.getElementById('profitUsd').textContent = `Potential Profit USD: ${totalProfit.toFixed(2)}`;
+            document.getElementById('positionSizeUsd').textContent = `Position Size USD: ${positionSizeUsd.toFixed(2)}`;
+        }
+
+        function saveSettings() {
+            const inputs = document.querySelectorAll('input');
+            inputs.forEach(input => {
+                localStorage.setItem(input.id, input.value);
+            });
+            alert('Settings saved successfully!');
+        }
+
+        function loadSettings() {
+            const inputs = document.querySelectorAll('input');
+            inputs.forEach(input => {
+                const savedValue = localStorage.getItem(input.id);
+                if (savedValue !== null) {
+                    input.value = savedValue;
+                }
+            });
+            calculatePosition();
+        }
+
+        // Add event listeners to inputs
+        const inputs = document.querySelectorAll('input');
+        inputs.forEach(input => input.addEventListener('input', calculatePosition));
+
+        // Add event listener to save button
+        document.getElementById('saveButton').addEventListener('click', saveSettings);
+
+        // Load saved settings and perform initial calculation
+        loadSettings();
+
+        // Initial calculation
+        calculatePosition();
+    </script>
+</body>
+</html>
