@@ -84,7 +84,7 @@
             const numberOfContracts = positionSize / contractSize;
 
             // Take profit hesaplama
-            const profitPerUnit = Math.abs(takeProfit - entryPrice);
+            const profitPerUnit = takeProfit - entryPrice;
             const totalProfit = profitPerUnit * positionSize;
 
             document.getElementById('contractsResult').textContent = `Position Size: ${numberOfContracts.toFixed(4)}`;
