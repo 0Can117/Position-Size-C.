@@ -60,10 +60,6 @@
             border-radius: 4px;
             display: none;
         }
-        .warning {
-            color: red;
-            font-weight: bold;
-        }
         .signature {
             position: absolute;
             bottom: 10px;
@@ -110,7 +106,7 @@
             <p>Risk Edilen Tutar: $<span id="riskAmount"></span></p>
             <p>Stop Loss Durumunda Kayıp: $<span id="lossAmount"></span></p>
             <p>Take Profit Durumunda Kâr: $<span id="profitAmount"></span></p>
-            <p id="marginWarning" class="warning" style="display: none;">Dikkat: Margin Call Riski! (Pozisyon Büyüklüğü Çok Yüksek)</p>
+            <p>Risk/Kâr Oranı (R): <span id="riskRewardRatio"></span></p>
         </div>
         <div class="signature">ByCan</div>
     </div>
@@ -147,6 +143,7 @@
 
             // Kâr/Zarar hesaplama (Take Profit yönüne göre)
             let profitAmount = 0;
+            let riskRewardRatio = "N/A"; // Take Profit yoksa varsayılan değer
             if (takeProfit !== null) {
                 const isLong = entryPrice > stopLoss; // Long: giriş > stop, Short: giriş < stop
                 const profitPipDifference = isLong ? (takeProfit - entryPrice) : (entryPrice - takeProfit); // Long için TP - Giriş, Short için Giriş - TP
@@ -155,22 +152,21 @@
                 if (profitAmount < 0 && Math.abs(profitAmount) > accountBalance) {
                     profitAmount = -accountBalance;
                 }
+                // Risk/Kâr Oranı (R) hesaplama
+                if (profitAmount > 0 && riskAmount > 0) {
+                    riskRewardRatio = (profitAmount / riskAmount).toFixed(2);
+                } else if (profitAmount <= 0) {
+                    riskRewardRatio = "Zarar";
+                }
             }
-
-            // Margin Call kontrolü (Pozisyon büyüklüğü hesap bakiyesini aşarsa)
-            const positionValue = positionSize * lotSize * entryPrice; // Pozisyonun toplam değeri
-            const marginWarning = positionValue > accountBalance;
 
             // Sonuçları göster
             document.getElementById('positionSize').textContent = positionSize.toFixed(4);
             document.getElementById('riskAmount').textContent = riskAmount.toFixed(2);
             document.getElementById('lossAmount').textContent = lossAmount.toFixed(2);
             document.getElementById('profitAmount').textContent = profitAmount.toFixed(2);
+            document.getElementById('riskRewardRatio').textContent = riskRewardRatio;
             document.getElementById('result').style.display = 'block';
-
-            // Margin Call uyarısı
-            const marginWarningElement = document.getElementById('marginWarning');
-            marginWarningElement.style.display = marginWarning ? 'block' : 'none';
         });
 
         // Ayarları kaydet
