@@ -21,6 +21,7 @@
         }
         .input-group {
             margin: 15px 0;
+            position: relative;
         }
         label {
             display: block;
@@ -33,6 +34,12 @@
             border: 1px solid #ddd;
             border-radius: 4px;
             box-sizing: border-box;
+        }
+        .hint {
+            font-size: 12px;
+            color: #666;
+            margin-top: 5px;
+            font-style: italic;
         }
         button {
             background-color: #4CAF50;
@@ -79,7 +86,11 @@
             </div>
             <div class="input-group">
                 <label for="riskPercentage">Risk Yüzdesi (%):</label>
-                <input type="number" id="riskPercentage" step="0.01" min="0" max="100" required>
+                <input type="number" id="riskPercentage" step="0.01" min="0" max="100">
+            </div>
+            <div class="input-group">
+                <label for="riskUSD">Risk USD ($):</label>
+                <input type="number" id="riskUSD" step="0.01">
             </div>
             <div class="input-group">
                 <label for="entryPrice">Giriş Fiyatı:</label>
@@ -96,6 +107,7 @@
             <div class="input-group">
                 <label for="lotSize">Birim Büyüklüğü (1 birim = x):</label>
                 <input type="number" id="lotSize" step="1" required placeholder="Örn: 100000 (Forex için)">
+                <div class="hint">Birim Büyüklüğü (=Contract Size) Örnek: Forex için: 100000, Altın için: 100, BTC için: 1 - Brokerın sağladığı paritenin kontrat büyüklüğünü girin (brokera göre değiliklik gösterebilir).</div>
             </div>
             <button type="submit">Hesapla</button>
             <button type="button" id="saveSettings">Ayarları Kaydet</button>
@@ -117,6 +129,7 @@
             const savedSettings = JSON.parse(localStorage.getItem('calcSettings')) || {};
             document.getElementById('accountBalance').value = savedSettings.accountBalance || '';
             document.getElementById('riskPercentage').value = savedSettings.riskPercentage || '';
+            document.getElementById('riskUSD').value = savedSettings.riskUSD || '';
             document.getElementById('lotSize').value = savedSettings.lotSize || '';
         };
 
@@ -126,15 +139,28 @@
             
             // Giriş değerlerini al
             const accountBalance = parseFloat(document.getElementById('accountBalance').value);
-            const riskPercentage = parseFloat(document.getElementById('riskPercentage').value);
+            const riskPercentage = document.getElementById('riskPercentage').value ? parseFloat(document.getElementById('riskPercentage').value) : null;
+            const riskUSD = document.getElementById('riskUSD').value ? parseFloat(document.getElementById('riskUSD').value) : null;
             const entryPrice = parseFloat(document.getElementById('entryPrice').value);
             const stopLoss = parseFloat(document.getElementById('stopLoss').value);
             const takeProfit = document.getElementById('takeProfit').value ? parseFloat(document.getElementById('takeProfit').value) : null;
             const lotSize = parseFloat(document.getElementById('lotSize').value);
 
-            // Risk ve pozisyon büyüklüğü hesaplamaları (maksimum hesap bakiyesi ile sınırlı)
-            let riskAmount = accountBalance * (riskPercentage / 100);
-            if (riskAmount > accountBalance) riskAmount = accountBalance; // Maksimum kayıp hesap bakiyesi kadar
+            // Risk ve pozisyon büyüklüğü hesaplamaları
+            let riskAmount;
+            if (riskUSD !== null && riskPercentage !== null) {
+                alert("Lütfen sadece bir risk türü (% veya USD) kullanın!");
+                return;
+            } else if (riskUSD !== null) {
+                riskAmount = riskUSD;
+            } else if (riskPercentage !== null) {
+                riskAmount = accountBalance * (riskPercentage / 100);
+            } else {
+                alert("Lütfen bir risk miktarı belirtin (% veya USD)!");
+                return;
+            }
+
+            if (riskAmount > accountBalance) riskAmount = accountBalance;
             const pipDifference = Math.abs(entryPrice - stopLoss);
             let positionSize = (riskAmount / pipDifference) / lotSize;
 
@@ -143,16 +169,14 @@
 
             // Kâr/Zarar hesaplama (Take Profit yönüne göre)
             let profitAmount = 0;
-            let riskRewardRatio = "N/A"; // Take Profit yoksa varsayılan değer
+            let riskRewardRatio = "N/A";
             if (takeProfit !== null) {
-                const isLong = entryPrice > stopLoss; // Long: giriş > stop, Short: giriş < stop
-                const profitPipDifference = isLong ? (takeProfit - entryPrice) : (entryPrice - takeProfit); // Long için TP - Giriş, Short için Giriş - TP
+                const isLong = entryPrice > stopLoss;
+                const profitPipDifference = isLong ? (takeProfit - entryPrice) : (entryPrice - takeProfit);
                 profitAmount = (positionSize * lotSize) * profitPipDifference;
-                // Zarar durumunda maksimum hesap bakiyesi ile sınırla
                 if (profitAmount < 0 && Math.abs(profitAmount) > accountBalance) {
                     profitAmount = -accountBalance;
                 }
-                // Risk/Kâr Oranı (R) hesaplama
                 if (profitAmount > 0 && riskAmount > 0) {
                     riskRewardRatio = (profitAmount / riskAmount).toFixed(2);
                 } else if (profitAmount <= 0) {
@@ -174,6 +198,7 @@
             const settings = {
                 accountBalance: document.getElementById('accountBalance').value,
                 riskPercentage: document.getElementById('riskPercentage').value,
+                riskUSD: document.getElementById('riskUSD').value,
                 lotSize: document.getElementById('lotSize').value
             };
             localStorage.setItem('calcSettings', JSON.stringify(settings));
